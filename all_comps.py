@@ -1,30 +1,40 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[238]:
+# In[1]:
 
 
 import requests
 import datetime
+import numpy as np
 import pandas as pd
 
 
-# In[239]:
+# In[2]:
 
 
 # Make a category lookup
-def climbing_category(cat):
-    categories = {
+def climbing_category(cat, intext=1):
+    external_categories = {
         '1': 'menLead',
         '2': 'womenLead',
         '5': 'womenBouldering',
         '6': 'menBouldering',
         '23': 'menSpeed',
-        '24': 'womenSpeed'}
-    return categories.get(cat, 'otherCategory')
+        '24': 'womenSpeed'
+    }
+    df_categories = {
+        '1': 'Men',
+        '2': 'Women',
+        '5': 'Women',
+        '6': 'Men',
+        '23': 'Men',
+        '24': 'Women'
+    }
+    return df_categories.get(cat, 'Men') if intext == 1 else external_categories.get(cat, 'otherCategory')
 
 
-# In[236]:
+# In[3]:
 
 
 # Get overall information for all competitions in a season
@@ -46,7 +56,7 @@ def add_season_competitions(url_json):
 
         # Get all categories in this competition
         for cat in comp.get('cats'):
-            new_comp.update({climbing_category(cat['GrpId']): 1})
+            new_comp.update({climbing_category(cat['GrpId'],2): 1})
 
         # Append new row dictionary, (representing a comp), in the new_rows list
         new_rows.append(new_comp)  
@@ -55,7 +65,7 @@ def add_season_competitions(url_json):
     return new_rows
 
 
-# In[237]:
+# In[4]:
 
 
 # Today's date
@@ -74,6 +84,19 @@ for season in range(int(str(today.year)[-2:]) + 1):
     
     # Getting all information for a dataframe with all comp overall figures
     competition_overview_df = competition_overview_df.append(add_season_competitions(season_json), ignore_index=True)
-
+    
+    # Adding what type of competitions are taking place
+    competition_overview_df['isBoulderingComp'] = np.where(
+        (competition_overview_df['menBouldering'] == 1) | 
+        (competition_overview_df['womenBouldering'] == 1), 1, 0)
+    
+    competition_overview_df['isLeadComp'] = np.where(
+        (competition_overview_df['menLead'] == 1) | 
+        (competition_overview_df['womenLead'] == 1), 1, 0)
+    
+    competition_overview_df['isSpeedComp'] = np.where(
+        (competition_overview_df['menSpeed'] == 1) | 
+        (competition_overview_df['womenSpeed'] == 1), 1, 0)
+    
 competition_overview_df
 
